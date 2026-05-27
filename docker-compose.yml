@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  ros2:
+    image: ros:humble
+    platform: linux/arm64
+    container_name: rescue_ros2
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RCUTILS_LOGGING_MIN_SEVERITY=INFO
+    volumes:
+      - ./ros2_ws:/root/ros2_ws
+      - ./output:/root/output
+    ports:
+      - "8765:8765"
+    networks:
+      - rescue_net
+    command: >
+      bash -c "
+        apt-get update -q &&
+        apt-get install -y -q python3-pip ros-humble-foxglove-bridge &&
+        pip3 install numpy scipy scikit-learn -q &&
+        source /opt/ros/humble/setup.bash &&
+        cd /root/ros2_ws &&
+        colcon build --symlink-install --event-handlers console_cohesion+ 2>&1 | tail -20 &&
+        source install/setup.bash &&
+        echo '=== ROS2 workspace ready ===' &&
+        ros2 launch rescue_sccs rescue.launch.py
+      "
+    stdin_open: true
+    tty: true
+
+networks:
+  rescue_net:
+    driver: bridge
